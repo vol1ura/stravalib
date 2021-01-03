@@ -7,4 +7,3 @@ if __name__ == '__main__':
     weather_key = stravalib.get_weather_key()
     for activity in activities:
         strava.add_weather(activity['id'], weather_key, lan='ru')
-        # pprint(activity)

@@ -6,6 +6,10 @@
 
 You need to register an application in your Strava account before getting started. 
 A registered application will be assigned a `client ID` and `client secret`. 
+
+![Strava application](pics/pic1.png)
+
+
 For more detail information see [official Strava documentation](https://developers.strava.com/docs/getting-started/).
 
 ## Using module

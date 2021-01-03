@@ -52,7 +52,7 @@ def compass_direction(degree: int, lan='en') -> str:
     compass_arr = {'ru': ["С", "ССВ", "СВ", "ВСВ", "В", "ВЮВ", "ЮВ", "ЮЮВ",
                           "Ю", "ЮЮЗ", "ЮЗ", "ЗЮЗ", "З", "ЗСЗ", "СЗ", "ССЗ", "С"],
                    'en': ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
-                           "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW", "N"]}
+                          "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW", "N"]}
     return compass_arr[lan][int((degree % 360) / 22.5 + 0.5)]
 
 
@@ -67,7 +67,8 @@ class Strava:
             self.token = self.get_token()
             save_object(self.token, Strava.token_file)
         self.check_token()
-        print(f"Athlete is successfully connected to Strava.")
+        print(f"Hello {self.token['athlete']['firstname']} {self.token['athlete']['lastname']}, "
+              f"you successfully get access to Strava.")
         self.extra_headers = {'Authorization': f"Bearer {self.token['access_token']}"}
 
     def get_token(self):
@@ -79,7 +80,7 @@ class Strava:
             "client_id": client_id,
             "scope": "read_all,profile:read_all,activity:write,activity:read_all",
             "approval_prompt": "force",
-            "state": "https://github.com/",
+            "state": "https://github.com/vol1ura/stravalib",
             "redirect_uri": f"http://localhost:{port}/authorization_successful"
         }
         values_url = urllib.parse.urlencode(params_oauth)
@@ -126,26 +127,47 @@ class Strava:
                 "grant_type": "refresh_token"
             }
             refresh_response = requests.post("https://www.strava.com/oauth/token", data=params).json()
-            if "access_token" not in refresh_response:
+            try:
+                self.token['refresh_token'] = refresh_response['refresh_token']
+                self.token['access_token'] = refresh_response['access_token']
+                self.token['expires_at'] = refresh_response['expires_at']
+                save_object(self.token, Strava.token_file)
+            except KeyError:
                 print('Token refresh is failed.')
                 raise SystemExit
             print('Token was successfully refreshed.')
-            self.token = refresh_response
-            save_object(self.token, Strava.token_file)
         exp_time = self.token['expires_at'] - int(time.time())
         hours = exp_time // 3600
         mins = (exp_time - 3600 * hours) // 60
         s = f"{hours}h " if hours != 0 else ""
         print(f"Token expires after {s}{mins} min")
 
-    def list_activities(self, **kwargs):
-        values_url = urllib.parse.urlencode(kwargs)
-        url = 'https://www.strava.com/api/v3/athlete/activities?' + values_url
+    def list_activities(self, after=0, before=time.time()):
+        """
+        List athlete activities. Usually with parameters:
+
+        :param after: integer, the time since epoch is assumed
+        :param before: integer, the time since epoch is assumed
+        :return: list with SummaryActivity dictionaries
+        """
+        url = f'https://www.strava.com/api/v3/athlete/activities?after={after}&before={before}'
         return requests.get(url, headers=self.extra_headers).json()
 
     def get_activity(self, activity_id):
         url = f'https://www.strava.com/api/v3/activities/{activity_id}'
         return requests.get(url, headers=self.extra_headers).json()
+
+    def modify_activity(self, activity_id, payload: dict):
+        """
+        Method can change UpdatableActivity parameters such that description, name, type, gear_id.
+        See https://developers.strava.com/docs/reference/#api-models-UpdatableActivity
+
+        :param activity_id: integer Strava activity ID
+        :param payload: dictionary with keys description, name, type, gear_id, trainer, commute
+        :return: dictionary with updated activity parameters
+        """
+        url = f'https://www.strava.com/api/v3/activities/{activity_id}'
+        return requests.put(url, headers=self.extra_headers, data=payload).json()
 
     def add_weather(self, activity_id, weather_api_key, lan='en'):
         activity = self.get_activity(activity_id)
