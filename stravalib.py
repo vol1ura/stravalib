@@ -153,11 +153,16 @@ class Strava:
         url = f'https://www.strava.com/api/v3/athlete/activities?after={after}&before={before}'
         return requests.get(url, headers=self.extra_headers).json()
 
-    def get_activity(self, activity_id):
+    def get_activity(self, activity_id: int):
+        """Get information about activity
+
+        :param activity_id: integer or string is a number
+        :return: dictionary with activity data
+        """
         url = f'https://www.strava.com/api/v3/activities/{activity_id}'
         return requests.get(url, headers=self.extra_headers).json()
 
-    def modify_activity(self, activity_id, payload: dict):
+    def modify_activity(self, activity_id: int, payload: dict):
         """
         Method can change UpdatableActivity parameters such that description, name, type, gear_id.
         See https://developers.strava.com/docs/reference/#api-models-UpdatableActivity
@@ -169,15 +174,15 @@ class Strava:
         url = f'https://www.strava.com/api/v3/activities/{activity_id}'
         return requests.put(url, headers=self.extra_headers, data=payload).json()
 
-    def add_weather(self, activity_id, weather_api_key, lan='en'):
+    def add_weather(self, activity_id: int, weather_api_key: str, lan='en'):
         activity = self.get_activity(activity_id)
         if activity['manual']:
-            print(f"Activity with ID {activity_id} is manual created. Can't add weather info for it.")
+            print(f"Activity with ID{activity_id} is manual created. Can't add weather info for it.")
             return
         description = activity.get('description', '')
         description = '' if description is None else description
         if description.startswith('Погода:'):
-            print(f'Weather description for activity ID {activity_id} is already set.')
+            print(f'Weather description for activity ID{activity_id} is already set.')
             return
         lat = activity['start_latitude']
         lon = activity['start_longitude']
@@ -186,11 +191,20 @@ class Strava:
         base_url = f"https://api.openweathermap.org/data/2.5/onecall/timemachine?" \
                    f"lat={lat}&lon={lon}&dt={start_time}&appid={weather_api_key}&units=metric&lang={lan}"
         w = requests.get(base_url).json()['current']
+        base_url = f"http://api.openweathermap.org/data/2.5/air_pollution?" \
+                   f"lat={lat}&lon={lon}&appid={weather_api_key}"
+        aq = requests.get(base_url).json()
+        print(aq)
+        print(start_time + 7200 > aq['list'][0]['dt'])
+        air_conditions = f"Воздух: {aq['list'][0]['components']['so2']}(PM2.5), " \
+                         f"{aq['list'][0]['components']['so2']}(SO₂), {aq['list'][0]['components']['no2']}(NO₂), " \
+                         f"{aq['list'][0]['components']['nh3']}(NH₃).\n"
+        print(air_conditions)
         trnsl = {'ru': ['Погода', 'по ощущениям', 'влажность', 'ветер', 'м/с', 'с'],
                  'en': ['Weather', 'feels like', 'humidity', 'wind', 'm/s', 'from']}
         weather_desc = f"{trnsl[lan][0]}: {w['temp']:.1f}°C ({trnsl[lan][1]} {w['feels_like']:.0f}°C), " \
                        f"{trnsl[lan][2]} {w['humidity']}%, {trnsl[lan][3]} {w['wind_speed']:.1f}{trnsl[lan][4]} " \
                        f"({trnsl[lan][5]} {compass_direction(w['wind_deg'], lan)}), {w['weather'][0]['description']}.\n"
-        payload = {'description': weather_desc + description}
+        payload = {'description': weather_desc + air_conditions + description}
         url = f'https://www.strava.com/api/v3/activities/{activity_id}'
         return requests.put(url, headers=self.extra_headers, data=payload).json()

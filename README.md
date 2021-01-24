@@ -14,14 +14,19 @@ For more detail information see [official Strava documentation](https://develope
 
 ## Using module
 
-Module `stravalib` contains a class with methods based on requests to the [Strava API](https://developers.strava.com/docs/reference/)
+Module `stravalib` contains a class with methods based on requests 
+to the [Strava API](https://developers.strava.com/docs/reference/)
 
 Constructor of the class will redirect you to the default system browser, where the authorization flow must be completed. 
-In the background the local webserver will be running and listening to the data returned by Strava. All received data will be saved locally for future using.
+In the background the local webserver will be running and listening to the data returned by Strava. All received data 
+will be saved locally for future using.
 
 ## Using scripts
 
 Script `add_weather.py` adds weather information to all your Strava activities for the past four days. 
 He will automatically skips the training if the information has already been added. 
-This script uses a weather server https://api.openweathermap.org/. You need to register on this site to recieve api token that will be prompted when you run script.
+This script uses a weather server https://api.openweathermap.org/. You need to register on this site to receive api 
+token that will be prompted when you run script.
 You can choose language of description from two languages - english by default or russian.
+
+![Weather description in activities](pics/pic2.png)
